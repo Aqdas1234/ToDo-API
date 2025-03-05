@@ -1,0 +1,26 @@
+# Ignore Python compiled files
+__pycache__/
+*.py[cod]
+*.pyc
+*.pyo
+*.pyd
+# Ignore environment files
+.env
+venv/
+myenv/
+
+config.json
+secrets.json
+
+# Ignore database files
+*.sqlite3
+
+# Ignore Django migrations
+**/migrations/*.py
+!**/migrations/__init__.py
+
+
+
+# Ignore VS Code settings
+.vscode/
+ 

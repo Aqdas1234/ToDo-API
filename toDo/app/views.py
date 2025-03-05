@@ -6,6 +6,7 @@ from .models import ToDo
 from .serializers import ToDoSerializer,UserSerializer,LoginSerializer
 from django.contrib.auth import authenticate, login, logout
 from rest_framework.renderers import JSONRenderer, BrowsableAPIRenderer
+from rest_framework_simplejwt.tokens import RefreshToken
 
 
 class SignupView(APIView):
@@ -20,30 +21,41 @@ class SignupView(APIView):
     
 class LoginView(APIView):
     renderer_classes = [BrowsableAPIRenderer, JSONRenderer]
-    serializer_class = LoginSerializer
+    #serializer_class = LoginSerializer
     def post(self, request):
         username = request.data.get('username')
         password = request.data.get('password')
         user = authenticate(username=username, password=password)
         
+         
         if user is not None:
-            login(request, user)
-            return Response({"message": "Login successful!"}, status=status.HTTP_200_OK)
+            refresh = RefreshToken.for_user(user)
+            return Response({
+                "message": "Login successful!",
+                "refresh": str(refresh),
+                "access": str(refresh.access_token)
+            }, status=status.HTTP_200_OK)
         else:
             return Response({"error": "Invalid credentials"}, status=status.HTTP_401_UNAUTHORIZED)
-
+        
 class LogoutView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
     def post(self, request):
-        logout(request)
-        return Response({"message": "Logout successful!"}, status=status.HTTP_200_OK)
-    
+        try:
+            refresh_token = request.data.get("refresh")
+            token = RefreshToken(refresh_token)
+            token.blacklist()  # Token blacklist karna (logout ke liye)
+            return Response({"message": "Logout successful!"}, status=status.HTTP_200_OK)
+        except Exception as e:
+            return Response({"error": "Invalid token"}, status=status.HTTP_400_BAD_REQUEST)
+        
+
 class ToDoAPIView(APIView):
     permission_classes = [permissions.IsAuthenticated]
     renderer_classes = [BrowsableAPIRenderer, JSONRenderer]
-    serializer_class = ToDoSerializer
+    #serializer_class = ToDoSerializer
     def get(self, request, pk=None):
         if pk:
-            # Retrieve a single to-do item
             todo = get_object_or_404(ToDo, pk=pk, user=request.user)
             serializer = ToDoSerializer(todo)
         else:
